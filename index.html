@@ -4,33 +4,101 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="style.css">
-  <title>Food App - AI Recepty podle zásob</title>
+  <title>Food App - Statistiky</title>
 </head>
 <body>
 
-<h2>🤖 AI Kuchař (Trvanlivé & Luštěniny) <a href="index.html" style="float: right; font-size: 14px; text-decoration: none; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 8px; color: var(--text); border: 1px solid var(--border);">🏠 Zpět</a></h2>
+<h2>🍱 Moje potraviny (Přehled) <button onclick="logout()">Logout</button></h2>
 
 <hr />
 
-<div class="form-card" style="padding: 25px;">
-  <h3 style="text-align: center;">Co dnes uvaříme?</h3>
-  <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px; text-align: center;">
-    Umělá inteligence vymyslí recept na míru z trvanlivých potravin a luštěnin, které máš v lednici či spíži.
-  </p>
+<h3>
+  📊 Statistika spotřeby –
+  <button onclick="changeMonth(-1)">←</button>
+  <span id="stats-month"></span>
+  <button onclick="changeMonth(1)">→</button>
+</h3>
 
-  <div id="ingredients-box" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 20px; font-weight: 600; color: #35d07f; text-align: center;">
-    ⏳ Prohledávám spíž a luštěniny...
+<div class="stats-grid">
+  <div class="stats-card">
+    <div class="stats-label">Nakoupeno</div>
+    <div class="stats-value" id="stat-purchased">—</div>
+    <span id="stat-avg-purchased"></span>
   </div>
 
-  <div style="text-align: center; margin-bottom: 20px;">
-    <button onclick="generateAIRecipe()" id="recipe-btn" disabled style="padding: 14px 28px; border-radius: 12px; background: linear-gradient(90deg, #4f7cff, #3b5bdb); border: none; color: white; font-weight: 600; cursor: pointer; font-size: 16px; width: 100%; max-width: 300px; opacity: 0.5;">
-      ✨ Vymyslet recept pomocí AI
-    </button>
+  <div class="stats-card">
+    <div class="stats-label">Spotřebováno</div>
+    <div class="stats-value" id="stat-consumed">—</div>
+    <span id="stat-avg-consumed"></span>
   </div>
 
-  <div id="ai-response-box" style="display: none; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 20px; color: var(--text); line-height: 1.6; white-space: pre-line; font-size: 15px;">
-    </div>
+  <div class="stats-card">
+    <div class="stats-label">Rozdíl</div>
+    <div class="stats-value" id="stat-diff">—</div>
+  </div>
 </div>
+
+<h4>Statistika dle kategorií</h4>
+<div id="stats-categories"></div>
+
+<hr />
+
+<div class="form-card">
+  <h3>➕ Přidat potravinu</h3>
+  
+  <div class="form-grid" style="display: grid; grid-template-columns: 2fr 2fr 1fr 1fr 2fr 2fr; gap: 10px; margin-bottom: 12px; width: 100%;">
+    <input id="name" placeholder="Název potraviny" style="width: 100%; box-sizing: border-box;" />
+    
+    <select id="category" style="width: 100%; box-sizing: border-box;">
+      <option value="" disabled selected>Vyber kategorii</option>
+      <option value="Mléčné výrobky">Mléčné výrobky</option>
+      <option value="Pečivo">Pečivo</option>
+      <option value="Salámy">Salámy</option>
+      <option value="Maso">Maso</option>
+      <option value="Luštěniny">Luštěniny</option>
+      <option value="Ovoce / zelenina">Ovoce / zelenina</option>
+      <option value="Nanuky">Nanuky</option>
+      <option value="Sladkosti">Sladkosti</option>
+      <option value="Nápoje">Nápoje</option>
+      <option value="Dochucovadla">Dochucovadla</option>
+      <option value="Trvanlivé potraviny">Trvanlivé potraviny</option>
+    </select>
+    
+    <input id="qty" type="number" placeholder="Množství" min="0" style="width: 100%; box-sizing: border-box; text-align: center; padding-inline: 4px;" />
+    
+    <select id="unit" style="width: 100%; box-sizing: border-box; padding-inline: 4px;">
+      <option value="ks" selected>ks</option>
+      <option value="kg">kg</option>
+      <option value="l">l</option>
+    </select>
+    
+    <input id="price" type="number" placeholder="Cena za jednotku" min="0" style="width: 100%; box-sizing: border-box;" />
+    <input id="expiry" type="date" style="width: 100%; box-sizing: border-box;" />
+  </div>
+  
+  <div style="display: grid; grid-template-columns: 2fr 7fr 2fr; gap: 10px; align-items: center; margin-top: 5px; width: 100%;">
+    <input type="file" id="barcode-photo-input" accept="image/*" style="display: none;">
+    
+    <button type="button" id="barcode-upload-btn" style="width: 100%; padding: 12px 5px; font-size: 14px; background: rgba(79, 124, 255, 0.15); border: 1px solid rgba(79, 124, 255, 0.4); color: var(--text); border-radius: 12px; cursor: pointer; white-space: nowrap; font-weight: 600; box-sizing: border-box; text-align: center;">
+      📷 Nahrát fotku
+    </button>
+    
+    <button onclick="addItem()" style="width: 100%; padding: 12px 5px; border-radius: 12px; background: linear-gradient(90deg, #4f7cff, #3b5bdb); border: none; color: white; font-weight: 600; cursor: pointer; white-space: nowrap; box-sizing: border-box; text-align: center;">
+      Přidat do skladu
+    </button>
+
+    <a href="list.html" style="width: 100%; padding: 12px 5px; font-size: 14px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); color: var(--text); border-radius: 12px; text-decoration: none; font-weight: 600; white-space: nowrap; text-align: center; display: inline-block; box-sizing: border-box;">
+      📋 Otevřít sklad
+    </a>
+  </div>
+</div>
+
+<div id="loading-status" style="display: none; color: var(--accent); font-weight: 600; margin-top: 8px; font-size: 12px; letter-spacing: 0.05em; text-align: left;">
+  🔎 Hledám čárový kód a produkt...
+</div>
+
+<script src="https://unpkg.com/@zxing/library@latest"></script>
+<script src="foceni.js"></script>
 
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js"
@@ -45,90 +113,159 @@ const session = JSON.parse(localStorage.getItem("session"))
 if (!session) window.location.href = "login.html"
 await supabase.auth.setSession(session)
 
-let rawIngredientsList = [];
+let currentMonthOffset = 0
 
-async function analyzeInventory() {
-  const user = await supabase.auth.getUser()
-  
-  // Vytáhneme trvanlivé jídlo a luštěniny
-  const { data: items, error } = await supabase
-    .from("food_inventory")
-    .select("product_name")
-    .gt("quantity", 0)
-    .in("product_category", ["Trvanlivé potraviny", "Luštěniny"]) 
-    .order("expiry_date", { ascending: true })
-    .limit(5)
-
-  const box = document.getElementById("ingredients-box");
-  const btn = document.getElementById("recipe-btn");
-
-  if (error || !items || items.length === 0) {
-    box.style.color = "var(--text-muted)";
-    box.textContent = "📭 Ve spíži nemáš žádné trvanlivé potraviny ani luštěniny.";
-    return;
-  }
-
-  rawIngredientsList = items.map(i => i.product_name);
-
-  box.innerHTML = `🥫 Suroviny ze spíže k dispozici:<br><span style="color: white; font-size: 18px; display:block; margin-top:8px;">${rawIngredientsList.join(", ")}</span>`;
-  
-  btn.disabled = false;
-  btn.style.opacity = "1";
+function getMonthRange(offset = 0) {
+  const now = new Date()
+  const date = new Date(now.getFullYear(), now.getMonth() + offset, 1)
+  const from = new Date(date.getFullYear(), date.getMonth(), 1)
+  const to = new Date(date.getFullYear(), date.getMonth() + 1, 1)
+  return { from, to, date }
 }
 
-analyzeInventory();
+window.changeMonth = function (dir) {
+  currentMonthOffset += dir
+  loadStats()
+}
 
-// === PŘÍMÉ VOLÁNÍ AI MODELU (ZDARMA BEZ REGISTRACE) ===
-// === OPRAVENÁ FUNKCE S RYCHLÝM MODELEM A FUNKČNÍM KLÍČEM ===
-// === STABILNÍ VERZE BEZ REGISTRACE A BEZ KLÍČŮ (ZDARMA) ===
-window.generateAIRecipe = async function() {
-  if (rawIngredientsList.length === 0) return;
+// === UPRAVENO: Zápis do food_inventory i purchase_log zároveň ===
+// === KOMPLETNÍ FUNKČNÍ REPRODUKCE SOUČASNÉHO + PŮVODNÍHO KÓDU ===
+window.addItem = async function () {
+  const user = await supabase.auth.getUser()
 
-  const btn = document.getElementById("recipe-btn");
-  const responseBox = document.getElementById("ai-response-box");
+  const name = document.getElementById("name").value
+  const category = document.getElementById("category").value
+  const qty = Number(document.getElementById("qty").value)
+  const unit = document.getElementById("unit").value
+  const price = Number(document.getElementById("price").value)
+  const expiry = document.getElementById("expiry").value
 
-  // Vizuální zpětná vazba
-  btn.disabled = true;
-  btn.textContent = "🤖 AI přemýšlí...";
-  responseBox.style.display = "block";
-  responseBox.style.borderColor = "var(--accent)";
-  responseBox.innerHTML = "<i>Uklízím linku, listuju kuchařkou a vymýšlím recept... Zabere to zhruba 3 vteřiny.</i>";
+  // 1. Zápis do skladu
+  const { error: inventoryError } = await supabase
+    .from("food_inventory")
+    .insert({
+      user_id: user.data.user.id,
+      product_name: name,
+      product_category: category,
+      quantity: qty,
+      unit,
+      unit_price: price,
+      expiry_date: expiry
+    })
 
-  // Zadání pro kuchaře
-  const prompt = `Jsi šéfkuchař. Vymysli jeden jednoduchý, rychlý český recept, kde jsou hlavními surovinami tyto ingredience: ${rawIngredientsList.join(", ")}. Můžeš předpokládat, že doma je sůl, pepř, olej a voda. Napiš název jídla a stručný postup krok za krokem v češtině. Nepoužívej žádné hvězdičky ani složité formátování, jen čistý text a odrážky.`;
-
-  try {
-    // Voláme bezplatnou a otevřenou AI bránu, která nevyžaduje žádné API klíče
-    const response = await fetch("https://nexra.aryahcr.cc/api/chat/gpt", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        messages: [{ role: "user", content: prompt }],
-        stream: false
-      })
-    });
-
-    const result = await response.json();
-    
-    // Vytáhnutí čistého textu z odpovědi
-    if (result && result.gpt) {
-      responseBox.style.borderColor = "var(--ok)";
-      responseBox.textContent = result.gpt.trim();
-    } else {
-      responseBox.style.borderColor = "var(--danger)";
-      responseBox.textContent = "❌ AI kuchař má zrovna plné ruce práce. Zkus to znovu za vteřinu.";
-    }
-
-  } catch (err) {
-    console.error("AI Error:", err);
-    responseBox.style.borderColor = "var(--danger)";
-    responseBox.textContent = "❌ Nepodařilo se spojit s AI kuchařem. Zkontroluj připojení k internetu.";
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "✨ Vymyslet recept pomocí AI";
+  if (inventoryError) {
+    console.log("INVENTORY ERROR:", inventoryError)
+    return
   }
+
+  // 2. Nákupní log (opraveno podle původního funkčního vzoru)
+  const { error: purchaseError } = await supabase
+    .from("purchase_log")
+    .insert({
+      user_id: user.data.user.id,
+      product_name: name,
+      product_category: category,
+      quantity: qty,              // Vráceno zpět
+      unit_price: price,          // Vráceno zpět
+      total_value: qty * price
+    })
+
+  if (purchaseError) {
+    console.log("PURCHASE LOG ERROR:", purchaseError)
+  }
+
+  // 3. Vyčištění formuláře
+  document.getElementById("name").value = ""
+  document.getElementById("category").value = ""
+  document.getElementById("qty").value = ""
+  document.getElementById("unit").value = "" // Reset na prázdnou hodnotu dle tvého originálu
+  document.getElementById("price").value = ""
+  document.getElementById("expiry").value = ""
+
+  // Reset zelených rámečků po vyfocení
+  const nameEl = document.getElementById("name")
+  const catEl = document.getElementById("category")
+  if (nameEl) nameEl.classList.remove('auto-filled')
+  if (catEl) catEl.classList.remove('auto-filled')
+
+  // Spuštění loadů (pokud na této stránce nemáš loadItems, nevadí, loadStats zafunguje)
+  if (typeof loadItems === "function") loadItems()
+  loadStats()
+}
+
+async function loadStats() {
+  const user = await supabase.auth.getUser()
+  const { from, to, date } = getMonthRange(currentMonthOffset)
+
+  document.getElementById("stats-month").textContent =
+    date.toLocaleDateString("cs-CZ", { month: "long", year: "numeric" })
+
+  const { data: consumption } = await supabase
+    .from('consumption_log')
+    .select('*')
+    .eq('user_id', user.data.user.id)
+    .gte('consumed_at', from.toISOString())
+    .lt('consumed_at', to.toISOString())
+
+  const { data: purchases } = await supabase
+    .from('purchase_log')
+    .select('*')
+    .eq('user_id', user.data.user.id)
+    .gte('purchased_at', from.toISOString())
+    .lt('purchased_at', to.toISOString())
+
+  const safeC = consumption || []
+  const safeP = purchases || []
+
+  const totalConsumed = safeC.reduce((s, r) => s + (r.total_value || 0), 0)
+  const totalPurchased = safeP.reduce((s, r) => s + (r.total_value || 0), 0)
+  const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
+
+  document.getElementById('stat-consumed').textContent = totalConsumed.toFixed(2) + ' Kč'
+  document.getElementById('stat-purchased').textContent = totalPurchased.toFixed(2) + ' Kč'
+  document.getElementById('stat-diff').textContent = (totalPurchased - totalConsumed).toFixed(2) + ' Kč'
+  document.getElementById('stat-avg-consumed').textContent = '(' + (totalConsumed / daysInMonth).toFixed(2) + ' Kč/den)'
+  document.getElementById('stat-avg-purchased').textContent = '(' + (totalPurchased / daysInMonth).toFixed(2) + ' Kč/den)'
+
+  const cats = {}
+  safeP.forEach(r => {
+    const cat = r.product_category || 'Bez kategorie'
+    if (!cats[cat]) cats[cat] = { purchased: 0, consumed: 0 }
+    cats[cat].purchased += r.total_value || 0
+  })
+  safeC.forEach(r => {
+    const cat = r.product_category || 'Bez kategorie'
+    if (!cats[cat]) cats[cat] = { purchased: 0, consumed: 0 }
+    cats[cat].consumed += r.total_value || 0
+  })
+
+  const sorted = Object.entries(cats).sort((a, b) => b[1].consumed - a[1].consumed)
+  const container = document.getElementById('stats-categories')
+
+  container.innerHTML = `<div class="cat-header"><div>Kategorie</div><div>Nakoupeno</div><div>Spotřebováno</div><div>Podíl spotřeby</div></div>` + 
+  sorted.map(([cat, d]) => {
+    const pct = totalConsumed > 0 ? Math.round((d.consumed / totalConsumed) * 100) : 0
+    return `
+      <div class="cat-row">
+        <div class="cat-name">${cat}</div>
+        <div class="cat-purchased">${d.purchased.toFixed(2)} Kč</div>
+        <div class="cat-consumed">${d.consumed.toFixed(2)} Kč</div>
+        <div class="cat-progress-wrap">
+          <div class="progress">
+            <div class="progress-bar" style="width:${pct}%"></div>
+            <div style="position:absolute; right:6px; top:50%; transform:translateY(-50%); font-size:12px; color:white; font-weight:600; mix-blend-mode: difference;">${pct} %</div>
+          </div>
+        </div>
+      </div>`
+  }).join('')
+}
+
+loadStats()
+
+window.logout = async function () {
+  await supabase.auth.signOut()
+  localStorage.removeItem("session")
+  window.location.href = "login.html"
 }
 </script>
 
