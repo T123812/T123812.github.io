@@ -1,49 +1,136 @@
-<!DOCTYPE html>     <!-- DEFINUJE, ŽE SE JEDNÁ O HTML DOKUMENT -->
-<html lang="en">    <!-- HTML -> CELÝ DOKUMENT: hlavička + tělo -->
-<head>              <!-- HEAD -> hlavička, informace o stránce - metadata, titulek, link na styly -->
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cv1: Odstavce a nadpisy</title>
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css">
+  <title>Food App - AI Recepty podle zásob</title>
 </head>
-<body>              <!-- BODY -> veškeré data, které chceme vidět na stránce ZDE! -->
+<body>
+
+<h2>🤖 AI Kuchař (Trvanlivé & Luštěniny) <a href="index.html" style="float: right; font-size: 14px; text-decoration: none; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 8px; color: var(--text); border: 1px solid var(--border);">🏠 Zpět</a></h2>
+
+<hr />
+
+<div class="form-card" style="padding: 25px;">
+  <h3 style="text-align: center;">Co dnes uvaříme?</h3>
+  <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px; text-align: center;">
+    Umělá inteligence vymyslí recept na míru z trvanlivých potravin a luštěnin, které máš v lednici či spíži.
+  </p>
+
+  <div id="ingredients-box" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 20px; font-weight: 600; color: #35d07f; text-align: center;">
+    ⏳ Prohledávám spíž a luštěniny...
+  </div>
+
+  <div style="text-align: center; margin-bottom: 20px;">
+    <button onclick="generateAIRecipe()" id="recipe-btn" disabled style="padding: 14px 28px; border-radius: 12px; background: linear-gradient(90deg, #4f7cff, #3b5bdb); border: none; color: white; font-weight: 600; cursor: pointer; font-size: 16px; width: 100%; max-width: 300px; opacity: 0.5;">
+      ✨ Vymyslet recept pomocí AI
+    </button>
+  </div>
+
+  <div id="ai-response-box" style="display: none; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 20px; color: var(--text); line-height: 1.6; white-space: pre-line; font-size: 15px;">
+    </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js"
+
+const supabase = createClient(
+  "https://xexjuqswanxhjpjbldxj.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhleGp1cXN3YW54aGpwamJsZHhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNzIzODgsImV4cCI6MjA5Njg0ODM4OH0.CoVQPwKTfbkCkxJmLOzCZkvitmEAvh2o6dFOLomWl8w"
+)
+
+// OCHRANA STRÁNKY
+const session = JSON.parse(localStorage.getItem("session"))
+if (!session) window.location.href = "login.html"
+await supabase.auth.setSession(session)
+
+let rawIngredientsList = [];
+
+async function analyzeInventory() {
+  const user = await supabase.auth.getUser()
+  
+  // Vytáhneme trvanlivé jídlo a luštěniny
+  const { data: items, error } = await supabase
+    .from("food_inventory")
+    .select("product_name")
+    .gt("quantity", 0)
+    .in("product_category", ["Trvanlivé potraviny", "Luštěniny"]) 
+    .order("expiry_date", { ascending: true })
+    .limit(5)
+
+  const box = document.getElementById("ingredients-box");
+  const btn = document.getElementById("recipe-btn");
+
+  if (error || !items || items.length === 0) {
+    box.style.color = "var(--text-muted)";
+    box.textContent = "📭 Ve spíži nemáš žádné trvanlivé potraviny ani luštěniny.";
+    return;
+  }
+
+  rawIngredientsList = items.map(i => i.product_name);
+
+  box.innerHTML = `🥫 Suroviny ze spíže k dispozici:<br><span style="color: white; font-size: 18px; display:block; margin-top:8px;">${rawIngredientsList.join(", ")}</span>`;
+  
+  btn.disabled = false;
+  btn.style.opacity = "1";
+}
+
+analyzeInventory();
+
+// === PŘÍMÉ VOLÁNÍ AI MODELU (ZDARMA BEZ REGISTRACE) ===
+// === OPRAVENÁ FUNKCE S RYCHLÝM MODELEM A FUNKČNÍM KLÍČEM ===
+// === STABILNÍ VERZE BEZ REGISTRACE A BEZ KLÍČŮ (ZDARMA) ===
+window.generateAIRecipe = async function() {
+  if (rawIngredientsList.length === 0) return;
+
+  const btn = document.getElementById("recipe-btn");
+  const responseBox = document.getElementById("ai-response-box");
+
+  // Vizuální zpětná vazba
+  btn.disabled = true;
+  btn.textContent = "🤖 AI přemýšlí...";
+  responseBox.style.display = "block";
+  responseBox.style.borderColor = "var(--accent)";
+  responseBox.innerHTML = "<i>Uklízím linku, listuju kuchařkou a vymýšlím recept... Zabere to zhruba 3 vteřiny.</i>";
+
+  // Zadání pro kuchaře
+  const prompt = `Jsi šéfkuchař. Vymysli jeden jednoduchý, rychlý český recept, kde jsou hlavními surovinami tyto ingredience: ${rawIngredientsList.join(", ")}. Můžeš předpokládat, že doma je sůl, pepř, olej a voda. Napiš název jídla a stručný postup krok za krokem v češtině. Nepoužívej žádné hvězdičky ani složité formátování, jen čistý text a odrážky.`;
+
+  try {
+    // Voláme bezplatnou a otevřenou AI bránu, která nevyžaduje žádné API klíče
+    const response = await fetch("https://nexra.aryahcr.cc/api/chat/gpt", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: prompt }],
+        stream: false
+      })
+    });
+
+    const result = await response.json();
     
-<!-- STISKNI ALT + Z, ABY SE ZALOMILY ŘÁDKY -> lépe čitelné texty -->
+    // Vytáhnutí čistého textu z odpovědi
+    if (result && result.gpt) {
+      responseBox.style.borderColor = "var(--ok)";
+      responseBox.textContent = result.gpt.trim();
+    } else {
+      responseBox.style.borderColor = "var(--danger)";
+      responseBox.textContent = "❌ AI kuchař má zrovna plné ruce práce. Zkus to znovu za vteřinu.";
+    }
 
-
-<!-- CVIČENÍ 1 - ODSTAVCE, NADPISY -->
-<!-- NADPISY -> značka H, číslo 1 až 6 definuje úroveň nadpisu -->
-    <h1>Toto je nadpis 1. úrovně</h1>
-    <h2>Toto je nadpis 2. úrovně</h2>
-    <h3>Toto je nadpis 3. úrovně</h3>   <br> <!-- slouží k odřádkování textu (vytvoří řádek mezeru) -->
-    <h4>Toto je nadpis 4. úrovně</h4>
-    <h5>Toto je nadpis 5. úrovně</h5>
-    <h6>Toto je nadpis 6. úrovně</h6>
-
-<!-- ODSTAVCE -> značka P -->
-    <p>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas interdum ante leo, in volutpat ipsum dignissim eget. Morbi pulvinar metus sit amet mauris vehicula porttitor. Cras dictum metus eu feugiat elementum. Etiam condimentum sem eget tellus lacinia, laoreet dignissim eros pellentesque. Fusce congue mauris sapien, sit amet commodo orci mollis vitae. Cras nisl tortor, pulvinar eu felis consectetur, sagittis accumsan odio. Donec a nibh tempus, porttitor eros vel, vestibulum est. Aliquam congue aliquet nisl in venenatis. Fusce facilisis orci et sapien cursus, sed tincidunt sapien ultrices. In quam dui, pellentesque et tempor vel, rutrum ac orci. Sed aliquet odio at felis facilisis volutpat. Aliquam erat volutpat. Interdum et malesuada fames ac ante ipsum primis in faucibus. Ut pulvinar sagittis suscipit. Quisque ut sodales urna. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.
-    </p>
-
-    <p>
-    Pellentesque justo libero, venenatis consequat convallis vitae, bibendum eu lectus. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nullam dui massa, tempus vel ornare vitae, tincidunt vel lacus. Quisque lacinia lacus a vehicula euismod. Cras vitae metus quis diam iaculis varius. Maecenas interdum nibh non consequat suscipit. Aenean finibus enim ac lorem facilisis, at aliquam lorem malesuada. Donec mi arcu, mollis vitae laoreet nec, hendrerit vitae turpis. Cras sed ipsum in justo tristique ultricies ac id nisi. Aliquam ornare tellus a tortor posuere rhoncus. Sed mollis a urna eu cursus. Praesent leo tellus, porttitor eu dignissim in, maximus ac nulla. Ut vitae enim ac leo tristique venenatis. Phasellus elit felis, mattis nec lorem id, hendrerit auctor purus. Vestibulum porta ex et dolor auctor, pretium tristique urna tristique. Duis pretium id justo placerat efficitur.
-    </p>
-
-    <p>In convallis leo ac pellentesque elementum. Cras at velit ut erat hendrerit lacinia quis vel dui. Duis convallis ex vel mauris finibus interdum. Sed at malesuada dolor. Curabitur dapibus tortor eget turpis vulputate, sit amet finibus metus blandit. Phasellus egestas massa nec rutrum hendrerit. Mauris et elementum felis. Maecenas facilisis, diam viverra convallis mattis, sapien est tempus felis, sit amet maximus ante elit sit amet lorem. Proin id bibendum quam, vulputate euismod mauris. Duis tempus augue eu ullamcorper sollicitudin. Phasellus vulputate velit ut porta aliquet. Maecenas porttitor justo sed nisi porta, ut mattis sapien elementum. Phasellus ultrices lacinia nunc, nec convallis odio ultrices id.</p>
-<!-- tomuto textu se říká LOREM IPSUM -> generuje zadané množství textu -> https://www.lipsum.com/ -->
-<!-- používá se pokud chceme stránku "něčím vyplnit", poté se nahradí skutečnými texty -->
-
-<!-- ÚKOL: Vytvořte novou webovou stránku a vložte do ní následující prvky:
-                Nadpis 1. úrovně
-                2 odstavce textu (použijte lorem ipsum)
-                Nadpis 3. úrovně
-                1 odstavecc textu (použijte lorem ipsum)
-                Nadpis 2. úrovně
--->
-
-<!-- validator.w3.org -> validace kódu
-                      -> kontrola, zda stránka splňuje definované standardy
-                      -> můžeme zadat webovou adresu stránky, nahrát soubor či jen zkopírovat
--->
+  } catch (err) {
+    console.error("AI Error:", err);
+    responseBox.style.borderColor = "var(--danger)";
+    responseBox.textContent = "❌ Nepodařilo se spojit s AI kuchařem. Zkontroluj připojení k internetu.";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "✨ Vymyslet recept pomocí AI";
+  }
+}
+</script>
 
 </body>
 </html>
